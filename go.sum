@@ -1,0 +1,4 @@
+github.com/BurntSushi/toml v1.2.1 h1:9F2/+DoOYIOksmaJFPw1tGFy1eDnIJXg+UHjuD8lTak=
+github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
+github.com/longbai/miservice v0.0.0-20230406173640-907ab44129ea h1:/9ApLA8XvoR9cNe4DB+OyWUIFoYDcnwzeOSsc4G742c=
+github.com/longbai/miservice v0.0.0-20230406173640-907ab44129ea/go.mod h1:nxhNNSXnRh/Ra9PGv5XF94v6VJ3+xK526wSIUQr0Vdc=
