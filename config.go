@@ -1,9 +1,10 @@
-package xiaogpt
+package xiaobot
 
 import (
     "encoding/json"
     "errors"
     "os"
+    "path/filepath"
     "strings"
 
     "github.com/BurntSushi/toml"
@@ -21,7 +22,6 @@ type Config struct {
     Prompt               string                 `json:"prompt" toml:"prompt"`
     MuteXiaoAI           bool                   `json:"mute_xiaoai" toml:"mute_xiaoai"`
     Bot                  string                 `json:"bot" toml:"bot"`
-    Cookie               string                 `json:"cookie" toml:"cookie"`
     APIBase              string                 `json:"api_base,omitempty" toml:"api_base,omitempty"`
     UseCommand           bool                   `json:"use_command" toml:"use_command"`
     Verbose              bool                   `json:"verbose" toml:"verbose"`
@@ -33,6 +33,7 @@ type Config struct {
     GPTOptions           map[string]interface{} `json:"gpt_options" toml:"gpt_options"`
     //BingCookiePath       string                 `json:"bing_cookie_path" toml:"bing_cookie_path"`
     //BingCookies          map[string]interface{} `json:"bing_cookies,omitempty" toml:"bing_cookies,omitempty"`
+    TokenPath string `json:"token_path" toml:"token_path"`
 }
 
 func (c *Config) PostInit() error {
@@ -55,7 +56,18 @@ func (c *Config) PostInit() error {
     if c.EdgeTTSVoice == "" {
         c.EdgeTTSVoice = "zh-CN-XiaoxiaoNeural"
     }
+    if c.TokenPath == "" {
+        c.TokenPath = filepath.Join(os.Getenv("HOME"), ".mi.token")
+    }
     return nil
+}
+
+func NewConfigFromFile(path string) (*Config, error) {
+    config := &Config{}
+    if err := config.ReadFromFile(path); err != nil {
+        return nil, err
+    }
+    return config, nil
 }
 
 func NewConfigFromOptions(options map[string]interface{}) (*Config, error) {
@@ -92,8 +104,6 @@ func NewConfigFromOptions(options map[string]interface{}) (*Config, error) {
             config.MuteXiaoAI = value.(bool)
         case "bot":
             config.Bot = value.(string)
-        case "cookie":
-            config.Cookie = value.(string)
         case "api_base":
             config.APIBase = value.(string)
         case "use_command":
@@ -112,10 +122,8 @@ func NewConfigFromOptions(options map[string]interface{}) (*Config, error) {
             config.EdgeTTSVoice = value.(string)
         case "gpt_options":
             config.GPTOptions = value.(map[string]interface{})
-            //case "bing_cookie_path":
-            //    config.BingCookiePath = value.(string)
-            //case "bing_cookies":
-            //    config.BingCookies = value.(map[string]interface{})
+        case "token_path":
+            config.TokenPath = value.(string)
         }
     }
 
@@ -150,9 +158,10 @@ func (c *Config) ReadFromFile(configPath string) error {
     }
 }
 
-const LATEST_ASK_API = "https://userprofile.mina.mi.com/device_profile/v2/conversation?source=dialogu&hardware={hardware}&timestamp={timestamp}&limit=2"
+const LatestAskApi = "https://userprofile.mina.mi.com/device_profile/v2/conversation?source=dialogu&hardware={hardware}&timestamp={timestamp}&limit=2"
 const COOKIE_TEMPLATE = "deviceId={device_id}; serviceToken={service_token}; userId={user_id}"
-const WAKEUP_KEYWORD = "小爱同学"
+const WakeupKeyword = "小爱同学"
+const MicoApi = "micoapi"
 
 var HARDWARE_COMMAND_DICT = map[string][2]string{
     //hardware: (tts_command, wakeup_command)

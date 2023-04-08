@@ -1,4 +1,4 @@
-module github.com/longbai/xiaogpt
+module github.com/longbai/xiaobot
 
 go 1.20
 

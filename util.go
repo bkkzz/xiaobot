@@ -1,58 +1,29 @@
-package xiaogpt
+package xiaobot
 
 import (
     "errors"
     "net"
-    "net/http"
-    "net/http/cookiejar"
     "net/url"
     "os"
     "regexp"
     "strings"
 )
 
-// parseCookieString returns an http.CookieJar from a string containing cookies
-func parseCookieString(cookieString string) (http.CookieJar, error) {
-    cookieMap := make(map[string]string)
-    headers := http.Header{}
-    headers.Add("Cookie", cookieString)
-
-    cookies := headers["Cookie"]
-    for _, cookie := range cookies {
-        parts := strings.Split(cookie, ";")
-        for _, part := range parts {
-            nameValue := strings.SplitN(strings.TrimSpace(part), "=", 2)
-            if len(nameValue) == 2 {
-                cookieMap[nameValue[0]] = nameValue[1]
-            }
-        }
-    }
-
-    cookieJar, err := cookiejar.New(nil)
-    if err != nil {
-        return nil, err
-    }
-
-    u, _ := url.Parse("http://dummy.url")
-    for key, value := range cookieMap {
-        cookieJar.SetCookies(u, []*http.Cookie{
-            {
-                Name:  key,
-                Value: value,
-            },
-        })
-    }
-
-    return cookieJar, nil
-}
-
-var noElapseChars = regexp.MustCompile(`([「」『』《》“”'\"()（）]|(?<!-)-(?!-))`)
+//var noElapseChars = regexp.MustCompile(`([「」『』《》“”'\"()（）]|(?<!-)-(?!-))`)
+var regex1 = regexp.MustCompile(`[「」『』《》“”'\"()（）]`)
+var regex2 = regexp.MustCompile(`(^|[^-])-($|[^-])`)
 
 // calculateTtsElapse returns the elapsed time for TTS
 func calculateTtsElapse(text string) float64 {
     speed := 4.5
-    cleanText := noElapseChars.ReplaceAllString(text, "")
-    return float64(len(cleanText)) / speed
+
+    // Replace the first part of the regex
+    result := regex1.ReplaceAllString(text, "")
+
+    // Replace the second part of the regex
+    result = regex2.ReplaceAllString(result, "")
+
+    return float64(len(result)) / speed
 }
 
 var endingPunctuations = []string{"。", "？", "！", "；", ".", "?", "!", ";"}
@@ -118,11 +89,10 @@ func getHostname() string {
     return localAddr.IP.String()
 }
 
-func InArray(needle string, haystack []string) bool {
-    for _, item := range haystack {
-        if item == needle {
-            return true
-        }
-    }
-    return false
+func Normalize(message string) string {
+    message = strings.TrimSpace(message)
+    message = strings.ReplaceAll(message, " ", "--")
+    message = strings.ReplaceAll(message, "\n", "，")
+    message = strings.ReplaceAll(message, "\"", "，")
+    return message
 }
