@@ -60,7 +60,7 @@ func (c *Config) PostInit() error {
     if c.TokenPath == "" {
         c.TokenPath = filepath.Join(os.Getenv("HOME"), ".mi.token")
     }
-    if c.Keywords == nil {
+    if len(c.Keywords) == 0 {
         c.Keywords = JarvisKeyWords
     }
     if c.Bot == "" {
@@ -141,7 +141,7 @@ func NewConfigFromOptions(options map[string]interface{}) (*Config, error) {
     return config, nil
 }
 
-func (c *Config) ReadFromJson(configPath string) error {
+func (c *Config) readFromJson(configPath string) error {
     data, err := os.ReadFile(configPath)
     if err != nil {
         return err
@@ -150,23 +150,26 @@ func (c *Config) ReadFromJson(configPath string) error {
     return json.Unmarshal(data, c)
 }
 
-func (c *Config) ReadFromTOML(configPath string) error {
+func (c *Config) readFromTOML(configPath string) error {
     _, err := toml.DecodeFile(configPath, c)
     return err
 }
 
-func (c *Config) ReadFromFile(configPath string) error {
+func (c *Config) ReadFromFile(configPath string) (err error) {
     if strings.HasSuffix(configPath, ".toml") {
-        return c.ReadFromTOML(configPath)
+        err = c.readFromTOML(configPath)
     } else if strings.HasSuffix(configPath, ".json") {
-        return c.ReadFromJson(configPath)
+        err = c.readFromJson(configPath)
     } else {
         return errors.New("invalid config file type")
     }
+    if err != nil {
+        return err
+    }
+    return c.PostInit()
 }
 
 const LatestAskApi = "https://userprofile.mina.mi.com/device_profile/v2/conversation?source=dialogu&hardware={hardware}&timestamp={timestamp}&limit=2"
-const COOKIE_TEMPLATE = "deviceId={device_id}; serviceToken={service_token}; userId={user_id}"
 const WakeupKeyword = "小爱同学"
 const MicoApi = "micoapi"
 

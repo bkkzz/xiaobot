@@ -1,4 +1,4 @@
-hardware = ""
+hardware = "LX01"
 account = ""
 password = ""
 openai_key = ""

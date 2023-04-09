@@ -59,9 +59,9 @@ func (mt *MiBot) pollLatestAsk() {
                 r := records.Records[0]
                 if r.Time*1000 > mt.LastTimestamp {
                     mt.LastTimestamp = r.Time * 1000
-                }
-                for _, r := range records.Records {
-                    mt.records <- r
+                    for _, r := range records.Records {
+                        mt.records <- r
+                    }
                 }
             }
         }
@@ -157,6 +157,7 @@ func (mt *MiBot) initDataHardware() error {
 }
 
 func queryIn(q string, keywords []string) bool {
+    log.Println(q, keywords)
     for _, k := range keywords {
         if strings.HasPrefix(q, k) {
             return true
@@ -166,7 +167,7 @@ func queryIn(q string, keywords []string) bool {
 }
 
 func (mt *MiBot) needAskJarvis(query string) bool {
-    return mt.InConversation && !strings.HasPrefix(query, WakeupKeyword) || queryIn(query, mt.config.Keywords)
+    return (mt.InConversation && !strings.HasPrefix(query, WakeupKeyword)) || queryIn(query, mt.config.Keywords)
 }
 
 func (mt *MiBot) needChangePrompt(query string) bool {
@@ -350,7 +351,7 @@ func (mt *MiBot) Run() error {
         }
 
         if !mt.needAskJarvis(query) {
-            log.Println("不需要问GPT", record)
+            log.Println("不需要问GPT", query, mt.config.Keywords)
             continue
         }
 

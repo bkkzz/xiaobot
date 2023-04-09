@@ -30,6 +30,11 @@ func TestMiBot(t *testing.T) {
         t.Error(err)
     }
 
+    j := bt.needAskJarvis("帮我看看今天的天气怎么样")
+    if !j {
+        t.Error("needAskJarvis failed")
+    }
+
     r, err := bt.getLatestAsk()
     if err != nil {
         t.Error(err)
