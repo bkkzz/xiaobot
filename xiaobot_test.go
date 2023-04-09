@@ -22,17 +22,17 @@ func TestMiBot(t *testing.T) {
         t.Error(err)
     }
     bt := NewMiBot(cfg)
-    err = bt.InitAllData()
+    err = bt.initAllData()
     if err != nil {
         t.Error(err)
     }
-    r, err := bt.GetLatestAskFromXiaoAi()
+    r, err := bt.getLatestAskFromXiaoAi()
     if err != nil {
         t.Error(err)
     }
     log.Println(r)
 
-    b, err := bt.GetIfXiaoAiIsPlaying()
+    b, err := bt.getIfXiaoAiIsPlaying()
     if err != nil {
         t.Error(err)
     }

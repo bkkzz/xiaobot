@@ -16,8 +16,8 @@ func (mt *MiBot) DoTTS(value string, waitForFinish bool) {
             fmt.Printf("Error: %v\n", err)
         }
     } else {
-        t := mt.TtsCommand()
-        mt.miioService.MiotAction(mt.deviceID, ActionId(t), []interface{}{value})
+        t := mt.ttsCommand()
+        mt.miioService.MiotAction(mt.deviceID, actionId(t), []interface{}{value})
     }
     if waitForFinish {
         elapse := calculateTtsElapse(value)
@@ -28,7 +28,7 @@ func (mt *MiBot) DoTTS(value string, waitForFinish bool) {
 
 func (mt *MiBot) WaitForTTSFinish() {
     for {
-        isPlaying, _ := mt.GetIfXiaoAiIsPlaying()
+        isPlaying, _ := mt.getIfXiaoAiIsPlaying()
         if !isPlaying {
             break
         }
