@@ -55,8 +55,14 @@ func (mt *MiBot) pollLatestAsk() {
         if err != nil {
             log.Printf("Error getting latest ask: %v", err)
         } else {
-            for _, r := range records.Records {
-                mt.records <- r
+            if len(records.Records) > 0 {
+                r := records.Records[0]
+                if r.Time*1000 > mt.LastTimestamp {
+                    mt.LastTimestamp = r.Time * 1000
+                }
+                for _, r := range records.Records {
+                    mt.records <- r
+                }
             }
         }
         elapsed := time.Since(start)
@@ -77,7 +83,7 @@ func (mt *MiBot) initAllData() error {
     }
     switch mt.config.Bot {
     case "gpt":
-        mt.assistant = &jarvis.GhatGpt{}
+        mt.assistant = &jarvis.GhatGpt{Key: mt.config.OpenAIKey, Backend: mt.config.OpenAIBackend, Proxy: mt.config.Proxy}
     case "newbing":
         mt.assistant = &jarvis.NewBing{}
     default:
@@ -355,9 +361,9 @@ func (mt *MiBot) Run() error {
 
         log.Println(strings.Repeat("-", 20))
         log.Printf("问题：%s？\n", query)
-        if len(mt.assistant.GetHistory()) == 0 {
-            query = fmt.Sprintf("%s，%s", query, mt.config.Prompt)
-        }
+        //if len(mt.assistant.GetHistory()) == 0 {
+        //    query = fmt.Sprintf("%s，%s", query, mt.config.Prompt)
+        //}
         if mt.config.MuteXiaoAI {
             mt.stopSpeaker()
         } else {

@@ -1,6 +1,8 @@
 package jarvis
 
 type NewBing struct {
+    Cookie string
+    Proxy  string
 }
 
 func (g *NewBing) Ask(msg string) (string, error) {

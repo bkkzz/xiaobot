@@ -5,7 +5,10 @@ go 1.20
 require (
 	fyne.io/fyne/v2 v2.3.3
 	github.com/BurntSushi/toml v1.2.1
+	github.com/gorilla/websocket v1.5.0
 	github.com/longbai/miservice v0.0.0-20230406173640-907ab44129ea
+	github.com/sashabaranov/go-openai v1.7.0
+	github.com/satori/go.uuid v1.2.0
 )
 
 require (
@@ -38,4 +41,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/js/dom v0.0.0-20210725211120-f030747120f2 // indirect
 )
-

@@ -1,6 +1,5 @@
 # xiaobot
 
-
 Play ChatGPT with Xiaomi AI Speaker
 
 fork from [xiaogpt](https://github.com/yihong0618/xiaogpt) and convert to Go
@@ -8,52 +7,30 @@ fork from [xiaogpt](https://github.com/yihong0618/xiaogpt) and convert to Go
 ## 支持的 AI 类型
 
 - ChatGPT API
-
+- NewBing WIP
 ## 准备
 
-1. ChatGPT id
+1. ChatGPT Key
 2. 小爱音响
 3. 能正常联网的环境或 proxy
 
 ## 使用
 
 - 跑起来之后就可以问小爱同学问题了，“帮我"开头的问题，会发送一份给 ChatGPT 然后小爱同学用 tts 回答
-- 默认用目前 ubus, 如果你的设备不支持 ubus 可以使用 `--use_command` 来使用 command 来 tts
-- 使用 `--mute_xiaoai` 选项，可以快速停掉小爱的回答
-- 使用 `--account ${account} --password ${password}`
+- 默认用目前 ubus, 如果你的设备不支持 ubus 可以使用配置 `use_command` 来使用 command 来 tts
+- 配置 `mute_xiaoai` 选项，可以快速停掉小爱的回答
+- 
 - 如果有能力可以自行替换唤醒词，也可以去掉唤醒词
-- 使用 `--use_chatgpt_api` 的 api 那样可以更流畅的对话，速度特别快，达到了对话的体验, [openai api](https://platform.openai.com/account/api-keys), 命令 `--use_chatgpt_api`
 - 使用 gpt-3 的 api 那样可以更流畅的对话，速度快, 请 google 如何用 [openai api](https://platform.openai.com/account/api-keys) 命令 --use_gpt3
 
-## config.json
-如果想通过单一配置文件启动也是可以的, 可以通过 `--config` 参数指定配置文件, config 文件必须是合法的 JSON 格式
+## config.toml
+如果想通过单一配置文件启动也是可以的, 可以通过 `-c` 参数指定配置文件, config 文件必须是合法的 JSON 或者toml 格式
 参数优先级
-- cli args > default > config
+- 环境变量 > config
 
 ```shell
-python3 xiaogpt.py --config xiao_config.json
-# or
-xiaogpt --config xiao_config.json
+xiaobot -c config.toml
 ```
-或者
-```shell
-cp xiao_config.json.example xiao_config.json
-python3 xiaogpt.py
-```
-
-若要指定 OpenAI 的模型参数，如 model, temporature, top_p, 请在config.json中指定：
-
-```json
-{
-    ...
-    "gpt_options": {
-        "temperature": 0.9,
-        "top_p": 0.9,
-    }
-}
-```
-
-具体参数作用请参考 [Open AI API 文档](https://platform.openai.com/docs/api-reference/chat/create)。
 ## 配置项说明
 
 | 参数                  | 说明                                     | 默认值                              |
@@ -86,12 +63,12 @@ python3 xiaogpt.py
 
 1. 请开启小爱同学的蓝牙
 2. 如果要更改提示词和 PROMPT 在代码最上面自行更改
-3. 目前已知 LX04 和 L05B L05C 可能需要使用 `--use_command`
+3. 目前已知 LX04 和 L05B L05C 可能需要使用 `use_command`
 
-## 视频教程
-https://www.youtube.com/watch?v=K4YA8YwzOOA
-
-
+## TODO
+1. 支持流式响应
+2. 支持Newbing
+3. UI 优化
 
 ## 感谢
 

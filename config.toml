@@ -1,0 +1,17 @@
+hardware = ""
+account = ""
+password = ""
+openai_key = ""
+openai_backend = ""
+mi_did = ""
+prompt = ""
+mute_xiaoai = false
+bot = ""
+use_command = false
+verbose = false
+start_conversation = ""
+end_conversation = ""
+stream = false
+enable_edge_tts = false
+edge_tts_voice = ""
+token_path = ""

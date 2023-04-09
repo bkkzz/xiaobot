@@ -15,6 +15,7 @@ type Config struct {
     Account              string                 `json:"account" toml:"account"`
     Password             string                 `json:"password" toml:"password"`
     OpenAIKey            string                 `json:"openai_key" toml:"openai_key"`
+    OpenAIBackend        string                 `json:"openai_backend" toml:"openai_backend"`
     Proxy                string                 `json:"proxy,omitempty" toml:"proxy,omitempty"`
     MiDID                string                 `json:"mi_did" toml:"mi_did"`
     Keywords             []string               `json:"keyword" toml:"keyword"`

@@ -1,6 +1,7 @@
 package xiaobot
 
 import (
+    "github.com/BurntSushi/toml"
     "log"
     "os"
     "testing"
@@ -58,9 +59,7 @@ func TestMiBot(t *testing.T) {
     os.Remove(p)
 }
 
-// simulate_xiaoai_question
-var miAskSimulateData = map[string]interface{}{
-    "code":    0,
-    "message": "Success",
-    "data":    `{"bitSet":[0,1,1],"records":[{"bitSet":[0,1,1,1,1],"answers":[{"bitSet":[0,1,1,1],"type":"TTS","tts":{"bitSet":[0,1],"text":"Fake Answer"}}],"time":1677851434593,"query":"Fake Question","requestId":"fada34f8fa0c3f408ee6761ec7391d85"}],"nextEndTime":1677849207387}`,
+func TestMi0(t *testing.T) {
+    b := Config{}
+    toml.NewEncoder(os.Stdout).Encode(b)
 }
