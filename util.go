@@ -7,6 +7,7 @@ import (
     "os"
     "regexp"
     "strings"
+    "time"
 )
 
 //var noElapseChars = regexp.MustCompile(`([「」『』《》“”'\"()（）]|(?<!-)-(?!-))`)
@@ -14,7 +15,7 @@ var regex1 = regexp.MustCompile(`[「」『』《》“”'\"()（）]`)
 var regex2 = regexp.MustCompile(`(^|[^-])-($|[^-])`)
 
 // calculateTtsElapse returns the elapsed time for TTS
-func calculateTtsElapse(text string) float64 {
+func calculateTtsElapse(text string) time.Duration {
     speed := 4.5
 
     // Replace the first part of the regex
@@ -23,7 +24,8 @@ func calculateTtsElapse(text string) float64 {
     // Replace the second part of the regex
     result = regex2.ReplaceAllString(result, "")
 
-    return float64(len(result)) / speed
+    v := float64(len(result)) / speed
+    return time.Duration(v+1) * time.Second
 }
 
 var endingPunctuations = []string{"。", "？", "！", "；", ".", "?", "!", ";"}

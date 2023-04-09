@@ -59,6 +59,12 @@ func (c *Config) PostInit() error {
     if c.TokenPath == "" {
         c.TokenPath = filepath.Join(os.Getenv("HOME"), ".mi.token")
     }
+    if c.Keywords == nil {
+        c.Keywords = JarvisKeyWords
+    }
+    if c.Bot == "" {
+        c.Bot = "gpt"
+    }
     return nil
 }
 
@@ -163,7 +169,7 @@ const COOKIE_TEMPLATE = "deviceId={device_id}; serviceToken={service_token}; use
 const WakeupKeyword = "小爱同学"
 const MicoApi = "micoapi"
 
-var HARDWARE_COMMAND_DICT = map[string][2]string{
+var HardwareCommandDict = map[string][2]string{
     //hardware: (tts_command, wakeup_command)
     "LX06":  {"5-1", "5-5"},
     "L05B":  {"5-3", "5-4"},
@@ -182,7 +188,7 @@ var HARDWARE_COMMAND_DICT = map[string][2]string{
     // add more here
 }
 
-var EDGE_TTS_DICT = map[string]string{
+var EdgeTtsDict = map[string]string{
     "用英语": "en-US-AriaNeural",
     "用日语": "ja-JP-NanamiNeural",
     "用法语": "fr-BE-CharlineNeural",
@@ -191,15 +197,8 @@ var EDGE_TTS_DICT = map[string]string{
     //add more here
 }
 
-var DEFAULT_COMMAND = []string{"5-1", "5-5"}
+var DefaultCommand = [2]string{"5-1", "5-5"}
 
-var KEY_WORD = []string{"帮我", "请回答"}
-var CHANGE_PROMPT_KEY_WORD = []string{"更改提示词"}
-var PROMPT = "以下请用100字以内回答，请只回答文字不要带链接"
-
-// simulate_xiaoai_question
-var MI_ASK_SIMULATE_DATA = map[string]interface{}{
-    "code":    0,
-    "message": "Success",
-    "data":    `{"bitSet":[0,1,1],"records":[{"bitSet":[0,1,1,1,1],"answers":[{"bitSet":[0,1,1,1],"type":"TTS","tts":{"bitSet":[0,1],"text":"Fake Answer"}}],"time":1677851434593,"query":"Fake Question","requestId":"fada34f8fa0c3f408ee6761ec7391d85"}],"nextEndTime":1677849207387}`,
-}
+var JarvisKeyWords = []string{"帮我", "请回答"}
+var ChangePromptKeyWord = []string{"更改提示词"}
+var Prompt = "以下请用100字以内回答，请只回答文字不要带链接"

@@ -39,4 +39,3 @@ require (
 	honnef.co/go/js/dom v0.0.0-20210725211120-f030747120f2 // indirect
 )
 
-replace github.com/longbai/miservice => ../miservice

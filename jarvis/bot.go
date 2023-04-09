@@ -1,6 +1,6 @@
-package xiaobot
+package jarvis
 
-type Bot interface {
+type Jarvis interface {
     Ask(msg string) (string, error)
     AskStream()
 

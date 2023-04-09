@@ -4,6 +4,7 @@ import (
     "encoding/json"
     "errors"
     "fmt"
+    "github.com/longbai/xiaobot/jarvis"
     "log"
     "net/url"
     "regexp"
@@ -24,16 +25,15 @@ type MiBot struct {
     account     *miservice.Account
     minaService *miservice.AIService
     miioService *miservice.IOService
+    records     chan Record
 
-    ChatBot        Bot
+    assistant      jarvis.Jarvis
     LastTimestamp  int64
     InConversation bool
 
     tempDir  string
     port     int
     hostname string
-
-    records chan *Record
 }
 
 func NewMiBot(config *Config) *MiBot {
@@ -41,10 +41,9 @@ func NewMiBot(config *Config) *MiBot {
     tokens := miservice.NewTokenStore(config.TokenPath)
     return &MiBot{
         config:        config,
-        ChatBot:       &GhatGptBot{},
         token:         tokens,
         LastTimestamp: lastTimestamp,
-        records:       make(chan *Record, 100),
+        records:       make(chan Record, 100),
     }
 }
 
@@ -52,9 +51,13 @@ func (mt *MiBot) pollLatestAsk() {
     for {
         log.Printf("Now listening xiaoai new message timestamp: %d", mt.LastTimestamp)
         start := time.Now()
-        _, err := mt.getLatestAskFromXiaoAi()
+        records, err := mt.getLatestAsk()
         if err != nil {
             log.Printf("Error getting latest ask: %v", err)
+        } else {
+            for _, r := range records.Records {
+                mt.records <- r
+            }
         }
         elapsed := time.Since(start)
         if elapsed < time.Second {
@@ -72,9 +75,17 @@ func (mt *MiBot) initAllData() error {
     if err != nil {
         return err
     }
+    switch mt.config.Bot {
+    case "gpt":
+        mt.assistant = &jarvis.GhatGpt{}
+    case "newbing":
+        mt.assistant = &jarvis.NewBing{}
+    default:
+        return errors.New("unknown bot: " + mt.config.Bot)
+    }
 
     if mt.config.EnableEdgeTTS {
-        go mt.StartHTTPServer()
+        go mt.startEdgeServer()
     }
     return nil
 }
@@ -148,7 +159,7 @@ func queryIn(q string, keywords []string) bool {
     return false
 }
 
-func (mt *MiBot) needAskGPT(query string) bool {
+func (mt *MiBot) needAskJarvis(query string) bool {
     return mt.InConversation && !strings.HasPrefix(query, WakeupKeyword) || queryIn(query, mt.config.Keywords)
 }
 
@@ -161,8 +172,8 @@ func (mt *MiBot) changePrompt(newPrompt string) {
     newPrompt = "以下都" + newPrompt
     log.Printf("Prompt from %s change to %s\n", mt.config.Prompt, newPrompt)
     mt.config.Prompt = newPrompt
-    if len(mt.ChatBot.GetHistory()) > 0 {
-        mt.ChatBot.SetHistoryPrompt(newPrompt)
+    if len(mt.assistant.GetHistory()) > 0 {
+        mt.assistant.SetHistoryPrompt(newPrompt)
     }
 }
 
@@ -172,13 +183,14 @@ type ret struct {
     Data    string `json:"data,omitempty"`
 }
 
-func (mt *MiBot) getLatestAskFromXiaoAi() (*Records, error) {
+func (mt *MiBot) getLatestAsk() (*Records, error) {
     retries := 2
+    var err error
     for i := 0; i < retries; i++ {
         u := strings.Replace(LatestAskApi, "{hardware}", mt.config.Hardware, -1)
         u = strings.Replace(u, "{timestamp}", strconv.FormatInt(time.Now().Unix()*1000, 10), -1)
         var result ret
-        err := mt.account.Request(MicoApi, u, nil, func(tokens *miservice.Tokens, cookie map[string]string) url.Values {
+        err = mt.account.Request(MicoApi, u, nil, func(tokens *miservice.Tokens, cookie map[string]string) url.Values {
             cookie["deviceId"] = mt.deviceID
             return nil
         }, nil, false, &result)
@@ -187,12 +199,16 @@ func (mt *MiBot) getLatestAskFromXiaoAi() (*Records, error) {
             continue
         }
 
-        lastQuery, err := mt.getLastQuery(&result)
-        if err == nil {
-            return lastQuery, nil
+        var records Records
+        err = json.Unmarshal([]byte(result.Data), &records)
+        if err != nil {
+            log.Println("get latest ask from xiaoai error", err)
+            continue
         }
+        return &records, nil
     }
-    return nil, fmt.Errorf("failed to get latest ask from xiaoai after %d retries", retries)
+
+    return nil, err
 }
 
 type Record struct {
@@ -211,22 +227,13 @@ type Record struct {
 }
 
 type Records struct {
-    BitSet      []int     `json:"bitSet"`
-    Records     []Records `json:"records"`
-    NextEndTime int64     `json:"nextEndTime"`
+    BitSet      []int    `json:"bitSet"`
+    Records     []Record `json:"records"`
+    NextEndTime int64    `json:"nextEndTime"`
 }
 
-func (mt *MiBot) getLastQuery(data *ret) (*Records, error) {
-    var records Records
-    err := json.Unmarshal([]byte(data.Data), &records)
-    if err != nil {
-        return nil, err
-    }
-    return &records, nil
-}
-
-func (mt *MiBot) askOther(query string) (string, error) {
-    return mt.ChatBot.Ask(query)
+func (mt *MiBot) askJarvis(query string) (string, error) {
+    return mt.assistant.Ask(query)
 }
 
 type StatusInfo struct {
@@ -235,7 +242,7 @@ type StatusInfo struct {
     LoopType int `json:"loop_type"`
 }
 
-func (mt *MiBot) getIfXiaoAiIsPlaying() (bool, error) {
+func (mt *MiBot) speakerIsPlaying() (bool, error) {
     res, err := mt.minaService.PlayerGetStatus(mt.deviceID)
     if err != nil {
         return false, err
@@ -245,33 +252,20 @@ func (mt *MiBot) getIfXiaoAiIsPlaying() (bool, error) {
     return info.Status == 1, nil
 }
 
-func (mt *MiBot) stopIfXiaoAiIsPlaying() error {
-    isPlaying, err := mt.getIfXiaoAiIsPlaying()
-    if err != nil {
-        return err
-    }
-
-    if isPlaying {
-        if _, err := mt.minaService.PlayerPause(mt.deviceID); err != nil {
-            return err
-        }
-    }
-
-    return nil
+func (mt *MiBot) stopSpeaker() error {
+    _, err := mt.minaService.PlayerPause(mt.deviceID)
+    return err
 }
 
-func (mt *MiBot) wakeupCommand() string {
-    if r, ok := HARDWARE_COMMAND_DICT[mt.config.Hardware]; ok {
-        return r[1]
-    }
-    return DEFAULT_COMMAND[1]
-}
+const WakeupIndex = 1
+const TTSIndex = 0
 
-func (mt *MiBot) ttsCommand() string {
-    if r, ok := HARDWARE_COMMAND_DICT[mt.config.Hardware]; ok {
-        return r[0]
+func (mt *MiBot) hardwareCommand(index int) string {
+    v, ok := HardwareCommandDict[mt.config.Hardware]
+    if !ok {
+        v = DefaultCommand
     }
-    return DEFAULT_COMMAND[0]
+    return v[index]
 }
 
 func actionId(action string) []int {
@@ -282,8 +276,38 @@ func actionId(action string) []int {
 }
 
 func (mt *MiBot) wakeUp() {
-    w := mt.wakeupCommand()
+    w := mt.hardwareCommand(WakeupIndex)
     mt.miioService.MiotAction(mt.deviceID, actionId(w), []interface{}{WakeupKeyword, 0})
+}
+
+func (mt *MiBot) miTTS(value string, waitForFinish bool) error {
+    if mt.config.UseCommand {
+        t := mt.hardwareCommand(TTSIndex)
+        c, err := mt.miioService.MiotAction(mt.deviceID, actionId(t), []interface{}{value})
+        log.Println("TTS command result", c, err)
+        return err
+    } else {
+        if _, err := mt.minaService.TextToSpeech(mt.deviceID, value); err != nil {
+            log.Printf("Error: %v\n", err)
+            return err
+        }
+    }
+    if waitForFinish {
+        elapse := calculateTtsElapse(value)
+        time.Sleep(elapse)
+        mt.waitForTTSFinish()
+    }
+    return nil
+}
+
+func (mt *MiBot) waitForTTSFinish() {
+    for {
+        isPlaying, _ := mt.speakerIsPlaying()
+        if !isPlaying {
+            break
+        }
+        time.Sleep(1 * time.Second)
+    }
 }
 
 func (mt *MiBot) Run() error {
@@ -303,14 +327,14 @@ func (mt *MiBot) Run() error {
                 mt.InConversation = true
                 mt.wakeUp()
             }
-            mt.stopIfXiaoAiIsPlaying()
+            mt.stopSpeaker()
             continue
         } else if query == mt.config.EndConversation {
             if mt.InConversation {
                 log.Println("结束对话")
                 mt.InConversation = false
             }
-            mt.stopIfXiaoAiIsPlaying()
+            mt.stopSpeaker()
             continue
         }
 
@@ -319,7 +343,7 @@ func (mt *MiBot) Run() error {
             mt.changePrompt(query)
         }
 
-        if !mt.needAskGPT(query) {
+        if !mt.needAskJarvis(query) {
             log.Println("不需要问GPT", record)
             continue
         }
@@ -331,15 +355,15 @@ func (mt *MiBot) Run() error {
 
         log.Println(strings.Repeat("-", 20))
         log.Printf("问题：%s？\n", query)
-        if len(mt.ChatBot.GetHistory()) == 0 {
+        if len(mt.assistant.GetHistory()) == 0 {
             query = fmt.Sprintf("%s，%s", query, mt.config.Prompt)
         }
         if mt.config.MuteXiaoAI {
-            mt.stopIfXiaoAiIsPlaying()
+            mt.stopSpeaker()
         } else {
             time.Sleep(8 * time.Second)
         }
-        mt.DoTTS("正在问GPT请耐心等待", false)
+        mt.miTTS("正在问GPT请耐心等待", false)
 
         if len(record.Answers) != 0 {
             var str string
@@ -351,7 +375,7 @@ func (mt *MiBot) Run() error {
             log.Println("小爱没回")
         }
 
-        message, err := mt.askOther(query)
+        message, err := mt.askJarvis(query)
         if err != nil {
             log.Printf("AskGPT error: %v", err)
             continue
@@ -359,13 +383,13 @@ func (mt *MiBot) Run() error {
 
         log.Print("以下是GPT的回答: ")
         if mt.config.EnableEdgeTTS {
-            ttsLang := findKeyByPartialString(EDGE_TTS_DICT, query)
+            ttsLang := findKeyByPartialString(EdgeTtsDict, query)
             if ttsLang == "" {
                 ttsLang = mt.config.EdgeTTSVoice
             }
-            mt.EdgeTTS(message, ttsLang)
+            mt.edgeTTS(message, ttsLang)
         } else {
-            mt.DoTTS(message, true)
+            mt.miTTS(message, true)
         }
         if mt.InConversation {
             log.Printf("继续对话, 或用`%s`结束对话\n", mt.config.EndConversation)
