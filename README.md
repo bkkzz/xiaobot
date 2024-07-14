@@ -2,6 +2,8 @@
 
 Play ChatGPT with Xiaomi AI Speaker
 
+fork from https://github.com/longbai/xiaobot
+
 fork from [xiaogpt](https://github.com/yihong0618/xiaogpt) and convert to Go
 
 ## 支持的 AI 类型
